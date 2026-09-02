@@ -1,0 +1,65 @@
+:root {
+  /* 工资表世界：暖灰白仪表底、瓷白字轮、朱红活跃态 */
+  --bg: #f4f3ef;
+  --panel-hi: #fbfaf7;
+  --panel-lo: #efeee8;
+  --ink: #1c242b;
+  --ink-soft: #6a675f;
+  --line: #d8d5cc;
+  --line-strong: #c9c6bd;
+  --accent: #b3392b;
+  --accent-soft: rgba(179, 57, 43, 0.12);
+  --wheel-face: linear-gradient(#ffffff 0%, #f1f0eb 45%, #ffffff 55%, #e9e7e0 100%);
+  --radius: 18px;
+  --radius-sm: 8px;
+  --shadow-panel: 0 24px 60px rgba(28, 36, 43, 0.12);
+  --shadow-inset-wheel:
+    inset 0 10px 18px rgba(0, 0, 0, 0.1),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.1);
+  --digit-font: 'Consolas', 'SF Mono', 'Menlo', monospace;
+  --text-font: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--text-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
