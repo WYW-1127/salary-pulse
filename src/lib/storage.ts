@@ -20,6 +20,8 @@ export function loadConfig(): SalaryConfig | null {
 
 export function saveConfig(cfg: SalaryConfig): void {
   localStorage.setItem(KEY, JSON.stringify(cfg))
+  // Electron 下让悬浮窗等其他窗口立即重读配置；纯浏览器没有这个桥接
+  window.salaryNative?.notifyConfigChanged()
 }
 
 export { DEFAULT_CONFIG }

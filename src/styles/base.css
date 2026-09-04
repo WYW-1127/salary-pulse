@@ -44,6 +44,13 @@ body {
   color: var(--accent);
 }
 
+/* Electron 悬浮窗：窗口本身透明，页面底色必须让开，只露卡片 */
+html.widget-mode,
+html.widget-mode body {
+  background: transparent;
+  overflow: hidden;
+}
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;

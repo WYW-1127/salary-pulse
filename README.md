@@ -13,6 +13,8 @@
   午休数字暂停，下班后按倍率继续跳
 - **三种计薪口径**：月薪、年薪总包、日薪
 - **下班倒计时**：最后一小时自动变红；加班时显示「已加班 · ×倍率」
+- **桌面悬浮窗（Electron）**：无边框置顶小窗常驻桌面，可拖动、记忆位置、
+  关闭缩进系统托盘，与浏览器互不相干
 - **纯前端、零依赖部署**：静态文件随处可放，配置只存浏览器 localStorage，
   无账号、无后端、数据不出本机
 
@@ -35,14 +37,22 @@
 
 ```bash
 npm install
-npm run dev       # 开发预览
-npm run test      # 运行 30 个单元测试
-npm run build     # 产出 dist/ 纯静态文件
+npm run dev           # 网页开发预览
+npm run test          # 运行 34 个单元测试
+npm run build         # 产出 dist/ 纯静态文件
+
+npm run electron:dev  # 桌面悬浮窗开发（vite + electron 一条命令）
+npm run smoke         # 构建 + Electron 冒烟截图（.impeccable/review/）
+npm run dist:win      # 打包 Windows NSIS 安装包（release/）
 ```
 
 把 `dist/` 扔到任意静态托管（GitHub Pages、Nginx、对象存储）即可，
 或者本地直接打开 `dist/index.html`。首次打开会引导填写计薪模式和作息时间，
 之后配置自动保存在浏览器里。
+
+桌面悬浮窗：安装 `release/` 里的安装包后从桌面快捷方式启动；悬浮窗与网页
+的配置各自独立存储（localStorage 按 origin 隔离），首次使用需在悬浮窗里
+设置一次。
 
 ## 技术栈
 

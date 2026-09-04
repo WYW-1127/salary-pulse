@@ -1,85 +1,45 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { ref } from 'vue'
 import GaugeDial from './components/GaugeDial.vue'
 import StatusLine from './components/StatusLine.vue'
 import WheelCounter from './components/WheelCounter.vue'
+import WidgetView from './components/WidgetView.vue'
 import SettingsView from './SettingsView.vue'
-import { earnedBetween, perSecondRate } from './lib/calc/earned'
-import { formatDateCN, formatHMS, formatRate, formatYuan } from './lib/calc/format'
-import { statusAt } from './lib/calc/status'
+import { useEarnings } from './composables/useEarnings'
+import { formatDateCN, formatYuan } from './lib/calc/format'
 import { DEFAULT_CONFIG, type SalaryConfig } from './lib/calc/types'
-import { toMinutes } from './lib/calc/validate'
 import { loadConfig, saveConfig } from './lib/storage'
+
+/** 形态由 URL hash 决定：''=网页主页，'#widget'=悬浮窗，'#settings'=独立设置窗 */
+const mode = location.hash.replace(/^#/, '') as '' | 'widget' | 'settings'
 
 const saved = loadConfig()
 const view = ref<'counter' | 'settings'>(saved ? 'counter' : 'settings')
 const cfg = ref<SalaryConfig>(saved ?? DEFAULT_CONFIG)
-
-const now = ref(new Date())
-const timer = setInterval(() => {
-  now.value = new Date()
-}, 250)
-onUnmounted(() => clearInterval(timer))
-
-function startOfDay(d: Date): Date {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  return x
-}
-
-const status = computed(() => statusAt(cfg.value, now.value))
-const rate = computed(() => perSecondRate(cfg.value))
-const today = computed(() => earnedBetween(cfg.value, startOfDay(now.value), now.value))
-const mainAmount = computed(() => today.value.regular + today.value.overtime)
-
-const secondsOfDay = computed(() => {
-  const n = now.value
-  return n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds()
-})
-const workStartSec = computed(() => toMinutes(cfg.value.workStart) * 60)
-const workEndSec = computed(() => toMinutes(cfg.value.workEnd) * 60)
-
-/** 副标题：状态相关的时间线文案 + 计薪口径 */
-const metaLine = computed(() => {
-  const mode =
-    cfg.value.payMode === 'monthly' ? '月薪' : cfg.value.payMode === 'annual' ? '年薪总包' : '日薪'
-  const ratePart = formatRate(
-    status.value === 'overtime' ? rate.value * cfg.value.overtimeRate : rate.value,
-  )
-  let line: string
-  switch (status.value) {
-    case 'pre':
-      line = `${ratePart} · 距开盘 ${formatHMS(workStartSec.value - secondsOfDay.value)}`
-      break
-    case 'trading':
-    case 'lunch':
-      line = `${ratePart} · 距下班 ${formatHMS(workEndSec.value - secondsOfDay.value)}`
-      break
-    case 'overtime':
-      line = `${ratePart} · 已加班 ${formatHMS(secondsOfDay.value - workEndSec.value)} · ×${cfg.value.overtimeRate}`
-      break
-    case 'closed':
-      line = ratePart
-  }
-  return `${line} · ${mode}`
-})
-
-/** 倒计时进入最后一小时，需要显著强调 */
-const lastHour = computed(
-  () =>
-    (status.value === 'trading' || status.value === 'lunch') &&
-    workEndSec.value - secondsOfDay.value <= 3600,
-)
 
 function onSave(next: SalaryConfig): void {
   cfg.value = next
   saveConfig(next)
   view.value = 'counter'
 }
+
+/** 独立设置窗（Electron）：保存后关窗；悬浮窗经 IPC 广播自行刷新 */
+function onStandaloneSave(next: SalaryConfig): void {
+  saveConfig(next)
+  window.close()
+}
+
+const { now, status, mainAmount, metaLine, lastHour, today } = useEarnings(cfg)
 </script>
 
 <template>
-  <div class="shell">
+  <WidgetView v-if="mode === 'widget'" />
+
+  <div v-else-if="mode === 'settings'" class="shell standalone">
+    <SettingsView :initial="cfg" :can-cancel="false" @save="onStandaloneSave" />
+  </div>
+
+  <div v-else class="shell">
     <StatusLine
       :status="status"
       :date-text="formatDateCN(now)"
@@ -127,6 +87,10 @@ function onSave(next: SalaryConfig): void {
   padding: 24px clamp(20px, 5vw, 64px);
   max-width: 1440px;
   margin: 0 auto;
+}
+
+.standalone {
+  grid-template-rows: 1fr;
 }
 
 main {
