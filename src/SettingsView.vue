@@ -34,6 +34,8 @@ const form = reactive({
   lunchEnd: props.initial.lunchEnd,
   workEnd: props.initial.workEnd,
   overtimeRate: String(props.initial.overtimeRate),
+  weekendWork: props.initial.weekendWork,
+  weekendRate: String(props.initial.weekendRate),
 })
 
 function parsed(): SalaryConfig {
@@ -45,6 +47,8 @@ function parsed(): SalaryConfig {
     lunchEnd: form.lunchEnd,
     workEnd: form.workEnd,
     overtimeRate: Number(form.overtimeRate),
+    weekendWork: form.weekendWork,
+    weekendRate: Number(form.weekendRate),
   }
 }
 
@@ -178,6 +182,42 @@ function submit(): void {
         <p class="err" id="ot-err" v-if="errors.overtimeRate" role="alert">{{ errors.overtimeRate }}</p>
       </div>
 
+      <fieldset>
+        <legend>周末</legend>
+        <div class="modes">
+          <button
+            type="button"
+            :aria-pressed="!form.weekendWork"
+            :class="{ on: !form.weekendWork }"
+            @click="form.weekendWork = false"
+          >
+            周末不计薪
+          </button>
+          <button
+            type="button"
+            :aria-pressed="form.weekendWork"
+            :class="{ on: form.weekendWork }"
+            @click="form.weekendWork = true"
+          >
+            周末也计薪
+          </button>
+        </div>
+        <p class="err" v-if="errors.weekendWork" role="alert">{{ errors.weekendWork }}</p>
+        <div v-if="form.weekendWork" class="field narrow wr">
+          <label for="wr">周末倍率（1 = 按正常薪资）</label>
+          <input
+            id="wr"
+            v-model="form.weekendRate"
+            inputmode="decimal"
+            autocomplete="off"
+            :aria-invalid="!!errors.weekendRate"
+            :aria-describedby="errors.weekendRate ? 'wr-err' : undefined"
+          />
+          <p class="err" id="wr-err" v-if="errors.weekendRate" role="alert">{{ errors.weekendRate }}</p>
+          <p class="hint">周末按同一份作息计时，午休不计，下班后不累计，不叠加加班倍率</p>
+        </div>
+      </fieldset>
+
       <div class="actions">
         <button type="submit" class="primary">保存</button>
         <button type="button" class="ghost" :disabled="!canCancel" @click="emit('cancel')">
@@ -292,6 +332,15 @@ select:focus-visible {
 .err {
   font-size: 13px;
   color: var(--accent);
+}
+
+.field.narrow.wr {
+  margin-top: 14px;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--ink-soft);
 }
 
 .actions {

@@ -3,14 +3,16 @@ import { validateConfig } from './calc/validate'
 
 const KEY = 'salary-pulse.config.v1'
 
-/** 读取本地配置；缺失、损坏或校验不过一律返回 null（视为未配置） */
+/** 读取本地配置；缺失、损坏或校验不过一律返回 null（视为未配置）。
+ * 旧版本配置缺周末字段时先补默认值，升级不丢配置 */
 export function loadConfig(): SalaryConfig | null {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw)
-    if (validateConfig(parsed) && Object.keys(validateConfig(parsed)).length === 0) {
-      return parsed as SalaryConfig
+    const merged = { ...DEFAULT_CONFIG, ...parsed }
+    if (validateConfig(merged) && Object.keys(validateConfig(merged)).length === 0) {
+      return merged as SalaryConfig
     }
     return null
   } catch {

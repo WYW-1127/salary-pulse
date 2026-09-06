@@ -15,6 +15,10 @@ export interface SalaryConfig {
   workEnd: string
   /** 加班费倍率 */
   overtimeRate: number
+  /** 周末（周六/日）是否也计薪 */
+  weekendWork: boolean
+  /** 周末计薪倍率（相对每秒费率，独立于工作日加班倍率；1 = 正常薪资） */
+  weekendRate: number
 }
 
 export const DEFAULT_CONFIG: SalaryConfig = {
@@ -25,4 +29,6 @@ export const DEFAULT_CONFIG: SalaryConfig = {
   lunchEnd: '13:00',
   workEnd: '18:00',
   overtimeRate: 1.5,
+  weekendWork: false,
+  weekendRate: 1,
 }

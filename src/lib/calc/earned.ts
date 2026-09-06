@@ -1,4 +1,5 @@
 import type { SalaryConfig } from './types'
+import { statusAt } from './status'
 import { toMinutes } from './validate'
 
 export interface Earnings {
@@ -31,6 +32,18 @@ export function perSecondRate(cfg: SalaryConfig): number {
   return total / dailyWorkSeconds(cfg)
 }
 
+/**
+ * 当前时刻生效的每秒费率：周末计薪日 = 基准 × 周末倍率；
+ * 工作日加班时段 = 基准 × 加班倍率；其余 = 基准。
+ * 仅用于展示与状态行；金额一律以 earnedBetween 为准。
+ */
+export function activeRate(cfg: SalaryConfig, now: Date): number {
+  const dow = now.getDay()
+  const rate = perSecondRate(cfg)
+  if (dow === 0 || dow === 6) return rate * (cfg.weekendWork ? cfg.weekendRate : 1)
+  return statusAt(cfg, now) === 'overtime' ? rate * cfg.overtimeRate : rate
+}
+
 /** [from, to] 与 day 日 startMin..endMin（分钟）窗口的交叠秒数 */
 function overlapSeconds(from: Date, to: Date, day: Date, startMin: number, endMin: number): number {
   const ws = new Date(day)
@@ -44,7 +57,9 @@ function overlapSeconds(from: Date, to: Date, day: Date, startMin: number, endMi
 
 /**
  * 任意两时刻之间的应得收入。按天迭代本地时区日期：
- * 周末不计薪；工作日拆 正常窗口 [workStart,lunchStart)∪[lunchEnd,workEnd) 与
+ * 周末默认不计薪；开启 weekendWork 后周末按「基准 × weekendRate」计入正常收入
+ * （同制作息、午休不计、下班后不累计，不叠加工作日加班倍率）。
+ * 工作日拆 正常窗口 [workStart,lunchStart)∪[lunchEnd,workEnd) 与
  * 加班窗口 [workEnd, 24:00)；每个窗口的金额先舍入到「分」再累加，避免浮点漂移。
  */
 export function earnedBetween(cfg: SalaryConfig, from: Date, to: Date): Earnings {
@@ -67,6 +82,10 @@ export function earnedBetween(cfg: SalaryConfig, from: Date, to: Date): Earnings
       regCents += Math.round(overlapSeconds(from, to, day, ws, ls) * rate * 100)
       regCents += Math.round(overlapSeconds(from, to, day, le, we) * rate * 100)
       otCents += Math.round(overlapSeconds(from, to, day, we, 1440) * rate * cfg.overtimeRate * 100)
+    } else if (cfg.weekendWork) {
+      const weekendRate = rate * cfg.weekendRate
+      regCents += Math.round(overlapSeconds(from, to, day, ws, ls) * weekendRate * 100)
+      regCents += Math.round(overlapSeconds(from, to, day, le, we) * weekendRate * 100)
     }
     day.setDate(day.getDate() + 1)
   }

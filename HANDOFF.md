@@ -22,8 +22,9 @@
   设置独立窗口（复用 SettingsView，保存后 IPC 广播刷新悬浮窗）。
   已冒烟截图验证（`.impeccable/review/widget-smoke.png`），
   NSIS 安装包 `release/薪资跳动 Setup 0.1.0.exe` 已产出并试运行正常
-- **质量**：vue-tsc 零错误；34 个 vitest 全过（29 计算 + 5 窗口钳制）；
-  构建 32.3KB gzip
+- **质量**：vue-tsc 零错误；43 个 vitest 全过（29 计算+窗口钳制基础、
+  9 周末计薪、5 窗口钳制——以 `npm run test` 实际输出为准）；
+  构建 32.8KB gzip
 - **git**：本地 main 领先 origin（悬浮窗提交待推送）
 
 ## 三、核心计算模型（不要破坏）
@@ -38,9 +39,15 @@
 
 - 核心函数 `earnedBetween(config, from, to)`：按绝对时间**推导**金额，
   绝不页面累加（关页面/改时间/换设备不漂移）。每个窗口金额先舍入到分再累加
-- 只算周一~周五；午休不计薪；工作日下班后按 `overtimeRate`（默认 1.5）计加班
-- 配置键：`localStorage['salary-pulse.config.v1']`，读取时校验失败视为未配置。
-  桌面端与浏览器端 origin 不同各存一份（用户首次用桌面端要设置一次）
+- 周一~周五：午休不计薪，下班后按 `overtimeRate`（默认 1.5）计入加班桶
+- **周末计薪（2026-09-06 新增）**：默认休市；`weekendWork: true` 时周六日
+  按同制作息、以「基准 × weekendRate」（默认 1，独立于加班倍率）计入
+  **正常收入桶**，午休不计、下班后不累计、状态机不出现加班中
+- `activeRate(cfg, now)`：当前时刻展示用费率（状态行用），金额仍以
+  earnedBetween 为准
+- 配置键：`localStorage['salary-pulse.config.v1']`，读取时先
+  `{...DEFAULT_CONFIG, ...parsed}` 补缺失字段再校验（旧配置升级不丢），
+  校验失败视为未配置。桌面端与浏览器端 origin 不同各存一份
 - 全部在 `src/lib/calc/`（types/validate/earned/status/format），是纯函数
 
 ## 四、视觉世界与关键决策（用户亲自定的，别推翻）
@@ -140,8 +147,8 @@ node scripts/gen-icons.cjs        # 改了图标设计后重新生成
    采样的最终实证未完成
 3. 悬浮窗已知小取舍：透明窗口截图四角发黑（capturePage 行为，实际透明）；
    设置窗 640px 高需要滚动。均无害
-4. 用户可能继续要的功能方向（未承诺）：周末加班开关、节假日历、涨薪历程、
-   奶茶换算玩梗、悬浮窗透明度/点击穿透（spec 明确不做，除非用户反悔）
+4. 用户可能继续要的功能方向（未承诺）：节假日历（周末开关已做完）、
+   涨薪历程、奶茶换算玩梗、悬浮窗透明度/点击穿透（spec 明确不做，除非用户反悔）
 5. 仓库现无 LICENSE；无 CI。要加的话 GitHub Actions 跑 `npm test` 很便宜
 
 ## 八、历史包袱提示

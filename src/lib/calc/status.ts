@@ -11,10 +11,12 @@ export const STATUS_LABEL: Record<WorkStatus, string> = {
   closed: '休市',
 }
 
-/** 五状态机：休市（周末）/ 未开盘 / 交易中 / 午间休市 / 加班中（本地时间判定） */
+/** 五状态机：休市 / 未开盘 / 交易中 / 午间休市 / 加班中（本地时间判定）。
+ * 周末默认休市；开启 weekendWork 后周末按同制作息交易，下班后直接休市（不叠加加班） */
 export function statusAt(cfg: SalaryConfig, now: Date): WorkStatus {
   const dow = now.getDay()
-  if (dow < 1 || dow > 5) return 'closed'
+  const weekend = dow < 1 || dow > 5
+  if (weekend && !cfg.weekendWork) return 'closed'
 
   const m = now.getHours() * 60 + now.getMinutes()
   const ws = toMinutes(cfg.workStart)
@@ -24,6 +26,6 @@ export function statusAt(cfg: SalaryConfig, now: Date): WorkStatus {
 
   if (m < ws) return 'pre'
   if (m >= ls && m < le) return 'lunch'
-  if (m >= we) return 'overtime'
+  if (m >= we) return weekend ? 'closed' : 'overtime'
   return 'trading'
 }

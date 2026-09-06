@@ -10,7 +10,8 @@ export function toMinutes(hhmm: string): number {
 
 /**
  * 校验配置，返回逐字段错误信息；返回空对象表示合法。
- * 规则：金额为正、时间字段格式合法且 workStart < lunchStart < lunchEnd < workEnd、倍率 ≥ 1。
+ * 规则：金额为正、时间字段格式合法且 workStart < lunchStart < lunchEnd < workEnd、
+ * 加班倍率 ≥ 1、周末倍率 > 0、周末开关为布尔。
  */
 export function validateConfig(c: Partial<SalaryConfig> | null): Record<string, string> {
   const errors: Record<string, string> = {}
@@ -41,6 +42,17 @@ export function validateConfig(c: Partial<SalaryConfig> | null): Record<string, 
 
   if (typeof c.overtimeRate !== 'number' || !Number.isFinite(c.overtimeRate) || c.overtimeRate < 1) {
     errors.overtimeRate = '加班倍率不能小于 1'
+  }
+
+  if (typeof c.weekendWork !== 'boolean') {
+    errors.weekendWork = '请选择周末是否计薪'
+  }
+  if (
+    typeof c.weekendRate !== 'number' ||
+    !Number.isFinite(c.weekendRate) ||
+    c.weekendRate <= 0
+  ) {
+    errors.weekendRate = '周末倍率需要是大于 0 的数字'
   }
   return errors
 }

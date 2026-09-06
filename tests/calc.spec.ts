@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dailyWorkSeconds, earnedBetween, perSecondRate } from '../src/lib/calc/earned'
+import { activeRate, dailyWorkSeconds, earnedBetween, perSecondRate } from '../src/lib/calc/earned'
 import { formatHMS, formatRate, formatYuan } from '../src/lib/calc/format'
 import { statusAt } from '../src/lib/calc/status'
 import { DEFAULT_CONFIG, type SalaryConfig } from '../src/lib/calc/types'
@@ -137,5 +137,62 @@ describe('格式化', () => {
   })
   it('时长补零', () => {
     expect(formatHMS(2 * 3600 + 13 * 60 + 25)).toBe('02:13:25')
+  })
+})
+
+describe('周末计薪开关', () => {
+  // 2026-09-05 周六、2026-09-06 周日、2026-09-04 周五
+  const wk: SalaryConfig = { ...cfg, weekendWork: true, weekendRate: 1 }
+
+  it('默认关闭：周末不计薪（回归）', () => {
+    const r = earnedBetween(cfg, d(2026, 9, 5, 9), d(2026, 9, 5, 10))
+    expect(r.regular).toBe(0)
+    expect(statusAt(cfg, d(2026, 9, 5, 10))).toBe('closed')
+  })
+  it('开启后周六上午一小时按基准 1 倍计', () => {
+    const r = earnedBetween(wk, d(2026, 9, 5, 9), d(2026, 9, 5, 10))
+    expect(r.regular).toBeCloseTo(125, 2)
+    expect(r.overtime).toBe(0)
+  })
+  it('周末倍率独立于加班倍率（×2 双薪）', () => {
+    const r = earnedBetween({ ...wk, weekendRate: 2 }, d(2026, 9, 5, 9), d(2026, 9, 5, 10))
+    expect(r.regular).toBeCloseTo(250, 2)
+  })
+  it('周末午休不计、下班后也不计（不进加班桶）', () => {
+    const lunch = earnedBetween(wk, d(2026, 9, 5, 12), d(2026, 9, 5, 13))
+    expect(lunch.regular).toBe(0)
+    const after = earnedBetween(wk, d(2026, 9, 5, 18), d(2026, 9, 5, 19))
+    expect(after.regular).toBe(0)
+    expect(after.overtime).toBe(0)
+  })
+  it('周末状态机：盘中交易、下班休市、不出现加班中', () => {
+    expect(statusAt(wk, d(2026, 9, 5, 8))).toBe('pre')
+    expect(statusAt(wk, d(2026, 9, 5, 10))).toBe('trading')
+    expect(statusAt(wk, d(2026, 9, 5, 12, 30))).toBe('lunch')
+    expect(statusAt(wk, d(2026, 9, 5, 19))).toBe('closed')
+  })
+  it('activeRate：周末按周末倍率、工作日加班按加班倍率', () => {
+    expect(activeRate(wk, d(2026, 9, 5, 10))).toBeCloseTo(perSecondRate(wk), 10)
+    expect(
+      activeRate({ ...wk, weekendRate: 2 }, d(2026, 9, 5, 10)),
+    ).toBeCloseTo(perSecondRate(wk) * 2, 10)
+    expect(activeRate(cfg, d(2026, 9, 5, 10))).toBeCloseTo(perSecondRate(cfg), 10)
+    expect(activeRate(cfg, d(2026, 9, 2, 19))).toBeCloseTo(perSecondRate(cfg) * 1.5, 10)
+  })
+  it('跨周五→周六（开启）分段各算各的', () => {
+    // 周五 8h 正常 + 周五 18-24 六小时加班 1.5× + 周六 9-10 一小时 1×
+    const r = earnedBetween(wk, d(2026, 9, 4, 9), d(2026, 9, 5, 10))
+    expect(r.regular).toBeCloseTo(1000 + 125, 2)
+    expect(r.overtime).toBeCloseTo(187.5 * 6, 2)
+  })
+})
+
+describe('周末字段校验', () => {
+  it('weekendRate 非正数被拒', () => {
+    expect(validateConfig({ ...DEFAULT_CONFIG, weekendRate: 0 }).weekendRate).toBeTruthy()
+  })
+  it('weekendWork 非布尔被拒', () => {
+    const e = validateConfig({ ...DEFAULT_CONFIG, weekendWork: 'yes' as unknown as boolean })
+    expect(e.weekendWork).toBeTruthy()
   })
 })

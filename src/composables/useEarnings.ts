@@ -1,5 +1,5 @@
 import { computed, onUnmounted, ref, type Ref } from 'vue'
-import { earnedBetween, perSecondRate } from '../lib/calc/earned'
+import { activeRate, earnedBetween } from '../lib/calc/earned'
 import { formatHMS, formatRate } from '../lib/calc/format'
 import { statusAt, type WorkStatus } from '../lib/calc/status'
 import type { SalaryConfig } from '../lib/calc/types'
@@ -23,7 +23,7 @@ export function useEarnings(cfg: Ref<SalaryConfig>) {
   }
 
   const status = computed<WorkStatus>(() => statusAt(cfg.value, now.value))
-  const rate = computed(() => perSecondRate(cfg.value))
+  const rate = computed(() => activeRate(cfg.value, now.value))
   const today = computed(() => earnedBetween(cfg.value, startOfDay(now.value), now.value))
   const mainAmount = computed(() => today.value.regular + today.value.overtime)
 
@@ -38,9 +38,7 @@ export function useEarnings(cfg: Ref<SalaryConfig>) {
   const metaLine = computed(() => {
     const mode =
       cfg.value.payMode === 'monthly' ? '月薪' : cfg.value.payMode === 'annual' ? '年薪总包' : '日薪'
-    const ratePart = formatRate(
-      status.value === 'overtime' ? rate.value * cfg.value.overtimeRate : rate.value,
-    )
+    const ratePart = formatRate(rate.value)
     let line: string
     switch (status.value) {
       case 'pre':

@@ -18,9 +18,7 @@ const active = computed(() => status.value === 'trading' || status.value === 'ov
 
 /** 紧凑副标题：不带状态词（已在左上角标）与计薪口径，保证一行放得下 */
 const metaLine = computed(() => {
-  const ratePart = formatRate(
-    status.value === 'overtime' ? rate.value * cfg.value.overtimeRate : rate.value,
-  )
+  const ratePart = formatRate(rate.value)
   switch (status.value) {
     case 'pre':
       return `${ratePart} · 距开盘 ${formatHMS(workStartSec.value - secondsOfDay.value)}`
