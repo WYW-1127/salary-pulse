@@ -112,6 +112,24 @@ node scripts/gen-icons.cjs        # 改了图标设计后重新生成
   先杀干净 electron.exe 进程再重跑一次即可
 - git 推送走 HTTPS + Windows 凭据管理器；gh CLI 未安装
 
+### 线上部署（2026-09-06 起）
+
+- **网页版**部署在腾讯云 CVM `182.254.227.137`（Ubuntu 24.04，SSH 免密已配，
+  根密码登录也通）：**http://182.254.227.137/salary/**
+- 该服务器 80 端口根路径是用户自己的「常用网站导航」页（/var/www/html，
+  **不要动**）；8080 是自建 GitLab 的 nginx；本项目以子路径共存：
+  nginx `location /salary/`（alias 到 `/var/www/salary-pulse/`，
+  含 `= /salary` 301），配置在 `/etc/nginx/sites-available/default`
+- **重新部署三步**：
+  ```bash
+  npm run build:salary        # base=/salary/（脚本在 package.json，
+                              # 别在 Git Bash 里直接传 --base= 会
+                              # 被 MSYS 路径改写成 /Program Files/Git/…）
+  tar -C dist -czf /tmp/s.tgz . && scp /tmp/s.tgz 182.254.227.137:/tmp/
+  ssh 182.254.227.137 'tar -xzf /tmp/s.tgz -C /var/www/salary-pulse'
+  ```
+- 悬浮窗（Electron）不上服务器，走 `release/` 安装包分发
+
 ## 七、未完成 / 可选后续
 
 1. **悬浮窗待真机细验**：托盘交互（左键单击/菜单）、拖动位置记忆、
